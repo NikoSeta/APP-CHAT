@@ -25,3 +25,31 @@ function addProductoNuevo(e) {
 socket.on('products', data => {
     render(data);
 })
+
+// <---MENSAJERÍA---> //
+
+function renderMensaje(data) {
+    const html = data.map((mensajes, index) => {
+        return(`
+        <div>
+            <strong>${mensajes.texto}</strong>:
+            <em>${mensajes.email}</em>
+        </div>`)
+    }).join(" ");
+    document.getElementById('mensajes').innerHTML = html;
+}
+
+function addMessage(e) {
+    const mensaje = {
+        author: document.getElementById('email').value,
+        text: document.getElementById('texto').value
+    };
+    
+    socket.emit('nuevo-mensaje', mensaje);
+
+    return false;
+}
+
+socket.on('mensajes', data => {
+    renrenderMensajesder(data);
+})
