@@ -1,4 +1,4 @@
-const fs = require ('fs')
+//conexiones al servidor
 const express = require('express');
 const { Server: HttpServer } = require('http');
 const { Server:IOServer } = require('socket.io');
@@ -9,6 +9,16 @@ const {Router} = express;
 const router = Router();
 const PORT = 8080
 
+// BBDD
+const { knexMariaDB } = require ('./options/MariaDB');
+const knex = require ('knex')(knexMariaDB)
+
+//Requires
+const Container = require('./components/Productos/productos');
+const container = new Container(knex);
+const Mensajeria = require ('./components/Chat/chat')
+const mensajes = new Mensajeria('./mensajes.txt')
+
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use('/api/productos', router);
@@ -17,53 +27,6 @@ app.get('/', function(req, res){
     res.sendFile(__dirname + "/public/index.html")
 });
 app.set('view engine', 'ejs')
-
-const server = app.listen(`${PORT}`, ()=>{
-    console.log(`Para ver los productos usar este link http://localhost:${PORT}/productos `);
-});
-
-
-class Container{
-    constructor(url){
-        this.url = url
-        this.contador= 0;
-        this.array = []
-    }
-    getAll(){
-        try {
-            return JSON.parse(fs.readFileSync(`${this.url}`, "utf-8"))
-        } catch (error) {
-            throw new Error(error);
-        }
-    }
-    getById(id){
-            let arrayProducts =  this.getAll();
-            return arrayProducts.find(product => product.id === id); 
-    }
-    addProd(obj){
-        try {
-            this.array = this.getAll()
-            this.contador ++;
-            obj.id = this.contador
-            this.array.push(obj)
-            fs.writeFileSync(this.url, JSON.stringify(this.array))
-        }
-        catch (err) {
-            console.log("No se pudo guardar el archivo")
-        }
-    }
-    async modifyProd(id){
-        let array = await this.getAll();
-        let modifyProd = array.map(p => p.id === id ? { ...p, nombre: "Lapiz de color", precio: 11, url: " " } : p);
-        fs.appendFileSync.splice(`${this.url}`, `${modifyProd}`);
-        return 
-    }
-    async deleteById(id){
-        let deleteId = await this.getAll();
-        return deleteId.splice(2,`${id}`);
-    }
-};
-let container = new Container('./productos.txt');
 
 app.get('/productos', function(req, res){
     let products = container.getAll()
@@ -96,33 +59,6 @@ io.on('connection', socket => {
 
 
 // <---Mensajes---> //
-class Mensajeria{
-    constructor(urlMEnsaje){
-        this.urlMEnsaje = urlMEnsaje
-        this.mensajes = []
-    }
-    getAll(){
-        try {
-            return JSON.parse(fs.readFileSync(`${this.urlMEnsaje}`, "utf-8"))
-        } catch (error) {
-            throw new Error(error);
-        }
-    };
-    addMensaje(obj){
-        try {
-            this.array = this.getAll()
-            this.contador ++;
-            obj.id = this.contador
-            this.array.push(obj)
-            fs.writeFileSync(this.urlMEnsaje, JSON.stringify(this.mensajes))
-        }
-        catch (err) {
-            console.log("No se pudo guardar el archivo")
-        };
-    }    
-};
-
-let mensajes = new Mensajeria('./mensajes.txt')
 
 io.on('connectionMensajes', (socket) => {
     console.log('Cliente conectado en Mensajería');
@@ -132,4 +68,8 @@ io.on('connectionMensajes', (socket) => {
         messages.push(data);
         io.sockets.emit('mensajes', mensajes.addMensaje());
     })
+});
+
+const server = app.listen(`${PORT}`, ()=>{
+    console.log(`Para ver los productos usar este link http://localhost:${PORT}/productos `);
 });
