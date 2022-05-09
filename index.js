@@ -11,63 +11,27 @@ const PORT = 8080
 
 // BBDD
 const { knexMariaDB } = require ('./options/MariaDB');
-const knex = require ('knex')(knexMariaDB)
+const { SQLite } = require ('./options/SQLite');
+const knex = require ('knex');
 
 //Requires
 const Container = require('./components/Productos/productos');
-const container = new Container(knex);
+const container = new Container(knexMariaDB);
 const Mensajeria = require ('./components/Chat/chat')
-const mensajes = new Mensajeria('./mensajes.txt')
+const mensajes = new Mensajeria()
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use('/api/productos', router);
 app.use('/', express.static(__dirname + '/public'))
-app.get('/', function(req, res){
-    res.sendFile(__dirname + "/public/index.html")
-});
+app.get( '/', function ( req, res ) { res.sendFile(__dirname + "/public/index.html" ) } );
 app.set('view engine', 'ejs')
 
-app.get('/productos', function(req, res){
-    let products = container.getAll()
+app.get('/productos', async function(req, res){
+    let products = await container.getAll(knexMariaDB);
     res.render('index',{
         products: products
-    })
-});
-
-app.post('/productos', function(req, res){
-    try {
-        let newProduct = req.body
-        container.addProd(newProduct)
-        res.redirect("/productos")
-        console.log(req.body);
-    } catch (error) {
-        console.log(error);
-    }
-});
-
-io.on('connection', socket => {
-    console.log('Cliente conetado en Producto');
-    const products = container.getAll();
-    socket.emit('products', products);
-
-    socket.on('new-product', data => {
-        products.push(data);
-        io.sockets.emit('products', products);
-    })
-});
-
-
-// <---Mensajes---> //
-
-io.on('connectionMensajes', (socket) => {
-    console.log('Cliente conectado en Mensajería');
-    socket.emit('mensajes', mensajes.getAll());
-
-    socket.on('nuevo-mensajes', data => {
-        messages.push(data);
-        io.sockets.emit('mensajes', mensajes.addMensaje());
-    })
+    });
 });
 
 const server = app.listen(`${PORT}`, ()=>{

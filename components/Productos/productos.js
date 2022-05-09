@@ -1,12 +1,9 @@
-const fs = require ('fs')
-
+const { knexMariaDB } = require ('../../options/MariaDB');
+const knex = require ('knex')(knexMariaDB)
 
 class Container{
-    constructor(url, knex){
-        this.url = url
+    constructor(knex){
         this.knex = knex
-        this.contador= 0;
-        this.array = []
     }
     createTableProd = async knex => {
         await knex.schema.createTable('Productos', table => {
@@ -14,44 +11,69 @@ class Container{
             table.string('name')
             table.integer('price')
             table.string('url')
-            .then(() => console.log('Tabla creada'))
+        })
+        .then(() => console.log('Tabla Productos creada'))
+        .catch((err) => { console.log(err); throw new err })
+        .finnally(()=>{
+            knex.destroy();
+        })
+    };
+    getAll = (knex) => {
+        if(this.createTableProd = null){
+            console.log('No hay tabla creada');
+        }else{
+            knex.from('Productos').select('id', 'name', 'price', 'url')
+            .then((result) => {
+                console.log(result);
+            }).catch((err) => {
+                console.log(err);
+            })
+            .finnally(()=>{
+                knex.destroy();
+            })
+        }
+    }
+
+    getById(id){
+        knex.from('Productos').select(`${id}`)
+        .then((rows) =>{
+            for (row of rows){
+                console.log(`${row['id']} ${row['name']} ${row['price']} ${row['url']}`);
+            }
+        })
+        .catch((err) => {
+            console.log(err);
+        })
+        .finnally(()=>{
+            knex.destroy();
         })
     }
 
-
-
-    getAll(){
-        try {
-            return JSON.parse(fs.readFileSync(`${this.url}`, "utf-8"))
-        } catch (error) {
-            throw new Error(error);
-        }
-    }
-    getById(id){
-            let arrayProducts =  this.getAll();
-            return arrayProducts.find(product => product.id === id); 
-    }
     addProd(obj){
-        try {
-            this.array = this.getAll()
-            this.contador ++;
-            obj.id = this.contador
-            this.array.push(obj)
-            fs.writeFileSync(this.url, JSON.stringify(this.array))
-        }
-        catch (err) {
-            console.log("No se pudo guardar el archivo")
-        }
+        knex('Productos').insert(`${obj}`)
+        .then((result) => {
+            console.log(result);
+        }).catch((err) => {
+            console.log(err);
+        });
     }
-    async modifyProd(id){
-        let array = await this.getAll();
-        let modifyProd = array.map(p => p.id === id ? { ...p, nombre: "Lapiz de color", precio: 11, url: " " } : p);
-        fs.appendFileSync.splice(`${this.url}`, `${modifyProd}`);
-        return 
+
+    async modifyProd(id, updateProd){
+        await knex('Productos').where(`${id}`).update(`${updateProd}`)
+        .then((result) => {
+            console.log(result);
+        }).catch((err) => {
+            console.log(err);
+        });
     }
+
     async deleteById(id){
-        let deleteId = await this.getAll();
-        return deleteId.splice(2,`${id}`);
+         await knex('Productos').del()
+        .then((result) => {
+            console.log(result);
+        }).catch((err) => {
+            console.log(err);
+        });
     }
 };
 

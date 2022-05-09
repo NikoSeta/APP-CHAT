@@ -1,28 +1,28 @@
-const fs = require ('fs')
-
+const { SQLite } = require ('../../options/SQLite');
+const knex = require ('knex')(SQLite)
 class Mensajeria{
-    constructor(urlMEnsaje){
-        this.urlMEnsaje = urlMEnsaje
-        this.mensajes = []
+    constructor(knex){
+        this.knex = knex
     }
-    getAll(){
-        try {
-            return JSON.parse(fs.readFileSync(`${this.urlMEnsaje}`, "utf-8"))
-        } catch (error) {
-            throw new Error(error);
-        }
+    createTableMsj = async knex => {
+        await knex.schema.createTable('MensajesChat', table => {
+            table.increments('id').primary();
+            table.string('name')
+            table.string('text')
+        })
+        .then(() => console.log('Tabla Mensajes creada'))
+        .catch((err) => { console.log(err); throw new err })
+        .finnally(()=>{
+            knex.destroy();
+        })
     };
     addMensaje(obj){
-        try {
-            this.array = this.getAll()
-            this.contador ++;
-            obj.id = this.contador
-            this.array.push(obj)
-            fs.writeFileSync(this.urlMEnsaje, JSON.stringify(this.mensajes))
-        }
-        catch (err) {
-            console.log("No se pudo guardar el archivo")
-        };
+        knex('MensajesChat').insert(`${obj}`)
+        .then((result) => {
+            console.log(result);
+        }).catch((err) => {
+            console.log(err);
+        });
     }    
 };
 
